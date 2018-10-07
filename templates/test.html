@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+    <script src="/static/js/jquery-3.3.1.min.js"></script>
+    <script src="/static/js/echarts.min.js"></script>
+    <script src="/static/js/bootstrap.min.js"></script>
+
+</head>
+<body>
+<form class="form-inline" method="post" action="">
+    <div class="form-group">
+        <label for="exampleInputEmail3">批次号 </label>
+        {#        <input type="text" class="form-control" id="exampleInputEmail3" placeholder="批次号">#}
+        {{ batch_form.batch }} <span id="batch_err" style="color: red"></span>
+    </div>
+    <div class="form-group">
+        <label for="exampleInputPassword3">款式</label>
+        <select name="style_coding" id="style_coding" class="form-control">
+            {% for style in style_coding %}
+                <option value="{{ style.0 }}">{{ style.0 }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    {% csrf_token %}
+    <button type="submit" class="btn btn-default" id="search">查询</button>
+</form>
+
+{% for line in line_list %}
+    {{ line|safe }}
+{% endfor %}
+<script>
+    if ('{{ err }}' != '') {
+        alert('{{ err }}')
+    }
+    $('#batch').attr('value','{{ batch }}')
+</script>
+{#动态加载款式#}
+<script>
+    function change_style() {
+        var kj = $('#batch').val();
+        $.ajax({
+            url: "/change_style/",
+            type: "GET",
+            dataType: 'json',
+            data: {'batch': kj},
+            async: true,
+            success: function (arg) {
+                console.log(arg)
+                if (arg['errs'] == ''){
+                    $('span#batch_err').empty();
+                     $('#style_coding').children().remove();
+                for (var i = 0; i < arg['style_coding_list'].length; i++) {
+                    var add_options = '<option value="' + arg['style_coding_list'][i] + '">' + arg['style_coding_list'][i] + '</option>';
+                    $('#style_coding').append(add_options);
+                    $('#search').attr('type','submit');
+                }
+                }
+                else {
+                    $('span#batch_err').empty();
+                    $('span#batch_err').append(arg['errs']);
+                    $('#style_coding').children().remove();
+                    $('#search').attr('type','button');
+
+                }
+
+
+            }
+        })
+    }
+</script>
+</body>
+</html>
