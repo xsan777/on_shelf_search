@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+    <script src="/static/js/jquery-3.3.1.min.js"></script>
+    <script src="/static/js/echarts.min.js"></script>
+    <script src="/static/js/bootstrap.min.js"></script>
+    {#<script src="/static/js/index.js"></script>#}
+
+</head>
+<body>
+<form class="form-inline" method="post" action="">
+    <div class="form-group">
+        <label for="exampleInputEmail3">批次号 </label>
+        {{ batch_form.batch }} <span id="batch_err" style="color: red"></span>
+        <datalist id="batch_list">
+        </datalist>
+    </div>
+    <div class="form-group">
+        <label for="exampleInputPassword3">款式</label>
+        <select name="style_coding" id="style_coding" class="form-control" onchange="change_shop()">
+            {% for style in style_coding %}
+{#                <option value="{{ style.0 }}">{{ style.0 }}</option>#}
+            {% endfor %}
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="shops">店铺</label>
+        <select name="shopname" id="shopname" class="form-control">
+        </select>
+        <span id="shop_err"></span>
+    </div>
+    {% csrf_token %}
+    <button type="submit" class="btn btn-default" id="search">查询</button>
+</form>
+
+{% for line in line_list %}
+    {{ line|safe }}
+{% endfor %}
+<!-- 验证报错，显示所查询的批次号-->
+<script>
+    if ('{{ err }}' != '') {
+        alert('{{ err }}')
+    }
+    $('#batch').attr('value', '{{ batch }}')
+</script>
+{#<!-- 动态查询，并显示相近的5个批次号 -->#}
+<script>
+    $('input#batch').bind('keyup', function () {
+        var batch = $('input#batch').val();
+        $.ajax({
+            url: "/search_batch/",
+            type: "GET",
+            dataType: 'json',
+            data: {'batch': batch},
+            async: false,
+            success: function (arg) {
+                $('datalist#batch_list').empty();
+                for (var i = 0; i < arg.length; i++) {
+                    var add_options = '<option value="' + arg[i] + '">' + arg[i] + '</option>';
+                    $('datalist#batch_list').append(add_options);
+                }
+                {#$('#batch').dropdown('show');#}
+            }
+        })
+    });
+</script>
+{#动态加载款式#}
+<script>
+    function change_style() {
+        var kj = $('#batch').val();
+        $.ajax({
+            url: "/change_style/",
+            type: "GET",
+            dataType: 'json',
+            data: {'batch': kj},
+            async: true,
+            success: function (arg) {
+                console.log(arg)
+                if (arg['errs'] == '') {
+                    $('span#batch_err').empty();
+                    $('#style_coding').children().remove();
+                    for (var i = 0; i < arg['style_coding_list'].length; i++) {
+                        var add_options = '<option value="' + arg['style_coding_list'][i] + '">' + arg['style_coding_list'][i] + '</option>';
+                        $('#style_coding').append(add_options);
+                        $('#search').attr('type', 'submit');
+                    }
+                    change_shop();
+                }
+                else {
+                    $('span#batch_err').empty();
+                    $('span#batch_err').append(arg['errs']);
+                    $('#style_coding').children().remove();
+                    $('#search').attr('type', 'button');
+                }
+            }
+        })
+    }
+</script>
+{# 动态加载店铺 #}
+<script>
+    function change_shop() {
+        var batch = $('#batch').val();
+        var style = $('#style_coding').val();
+        console.log(style);
+        $.ajax({
+            url: "/search_shops/",
+            type: "GET",
+            dataType: 'json',
+            data: {'batch': batch, 'style': style},
+            async: true,
+            success: function (arg) {
+                console.log(arg);
+                if (arg['errs'] == '') {
+                    $('span#shop_err').empty();
+                    $('#shopname').children().remove();
+                    for (var i = 0; i < arg['shop_list'].length; i++) {
+                        var add_options = '<option value="' + arg['shop_list'][i] + '">' + arg['shop_list'][i] + '</option>';
+                        $('#shopname').append(add_options);
+                        $('#search').attr('type', 'submit');
+                    }
+                }
+                else {
+                    $('span#shop_err').empty();
+                    $('span#shop_err').append(arg['errs']);
+                    $('#shopname').children().remove();
+                    {#$('#search').attr('type', 'button');#}
+                }
+            }
+        })
+    }
+</script>
+
+
+</body>
+</html>

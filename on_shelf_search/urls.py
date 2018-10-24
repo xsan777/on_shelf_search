@@ -19,6 +19,8 @@ from shelf_search import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', views.test2),
+    path('', views.index),
+    path('search_batch/',views.search_batch),
     path('change_style/', views.search_style),
+    path('search_shops/', views.search_shops),
 ]

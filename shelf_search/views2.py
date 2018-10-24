@@ -1,5 +1,4 @@
 from django.shortcuts import render, HttpResponse
-from .models import *
 from .database_operations import *
 from pyecharts import Line, Overlap
 from .forms import *
@@ -14,20 +13,23 @@ def test(request):
 
 # 动态加载5个相似的批次号
 def search_batch(request):
-    batchs = request.GET.get('batch')
-    batch_data = BatchComparison.objects.filter(batch__istartswith=batchs).values('batch').all()[0:5]
-    batch_list = [i['batch'] for i in batch_data]
+    db = Database_operat()
+    batch = request.GET.get('batch')
+    batch = batch + '%'
+    batch_like_sql = "SELECT batch FROM batch_comparison WHERE batch  LIKE '%s' LIMIT 0,5;" % batch
+    batch_list = db.search_all(batch_like_sql)
     msg = json.dumps(batch_list)
     return HttpResponse(msg)
 
 
 # 动态查询该批次号对应该款式店铺
 def search_shops(request):
+    db = Database_operat()
     err = ''
-    batchs = request.GET.get('batch')
+    batch = request.GET.get('batch')
     style_codings = request.GET.get('style')
-    shops_data = SpuidComparison.objects.filter(batch=batchs, style_coding=style_codings).all()
-    shops_list = [i.brand for i in shops_data]
+    shops_sql = "SELECT DISTINCT brand FROM spuid_comparison WHERE batch='%s' AND style_coding='%s'" % (batch, style_codings)
+    shops_list = db.search_all(shops_sql)
     if len(shops_list) < 1:
         err = '该批次的该款式没有上架'
     else:
@@ -40,64 +42,48 @@ def search_shops(request):
 
 
 def index(request):
+    db = Database_operat()
     over_list = []
     style_coding_list = []
     err = ''
-    batchs = ''
+    batch = ''
     if request.method == 'POST':
-        batchs = request.POST.get('batch')
+        batch = request.POST.get('batch')
     # 判断款式号是否有误
-    if len(batchs) > 0:
+    if len(batch) > 0:
         # 查询款式
-        style_coding_data = SpuidComparison.objects.filter(batch=batchs).values('style_coding').all()
+        style_coding_sql = "SELECT DISTINCT style_coding FROM spuid_comparison WHERE batch='%s'; " % batch
+        style_coding_list = db.search_all(style_coding_sql)
         # 判断是否存在对应款式
-        if len(style_coding_data) > 0:
+        if len(style_coding_list) > 0:
             # 该款式的所有查询spuid的
             if request.method == 'POST':
                 style = request.POST.get('style_coding')
-                spuid_data = SpuidComparison.objects.filter(style_coding=style).all()
+                spuid_sql = "SELECT spuid,brand FROM spuid_comparison WHERE style_coding='%s';" % style
             else:
-                spuid_data = SpuidComparison.objects.filter(style_coding=style_coding_data.first()).all()
-            spuid_list = []
-            for spuids in spuid_data:
-                spuid_dic = {}
-                spuid_dic['spuid'] = spuids.spuid
-                spuid_dic['brand'] = spuids.brand
-                spuid_list.append(spuid_dic)
-
+                spuid_sql = "SELECT spuid,brand FROM spuid_comparison WHERE style_coding='%s';" % style_coding_list[0]
+            spuid_list = db.search_all(spuid_sql)
+            # print(spuid_list)
             # 判断该款式是否存在spuid号
             if len(spuid_list) > 0:
                 # 查询data并生成图表
                 over_list = []
-                for spuidss in spuid_list:
-                    data = StoreDailyData.objects.filter(spuid=spuidss['spuid']).values('uv', 'conversion_rate_of_order_payment',
-                                                                                        'conversion_rate_of_payment',
-                                                                                        'number_of_additional_purchases', 'collection_number',
-                                                                                        'number_of_order_items', 'date').all()
-                    x_list = [i['date'] for i in data]
-                    y_list_1 = ['%.2f' % (i['conversion_rate_of_payment'] * 100) for i in data]
-                    y_list_1_2 = []
-                    for i in data:
-                        if i['uv'] == 0:
-                            tmp = '0.00'
-                        else:
-                            tmp = '%.2f' % (i['collection_number'] / i['uv'] * 100)
-                        y_list_1_2.append(tmp)
-                    y_list_1_3 = []
-                    for i in data:
-                        if i['uv'] == 0:
-                            tmp = '0.00'
-                        else:
-                            tmp = '%.2f' % (i['number_of_additional_purchases'] / i['uv'] * 100)
-                        y_list_1_3.append(tmp)
+                for spuid in spuid_list:
+                    data_sql = "SELECT UV,conversion_rate_of_payment,number_of_additional_purchases,collection_number,number_of_order_items,date FROM store_daily_data WHERE spuid='%s'" % spuid
+                    data = db.search_all(data_sql)
+                    print(data)
+                    x_list = [i for i in data]
+                    y_list_1 = ['%.2f' % (i[2] * 100) for i in data]
+                    y_list_1_2 = ['%.2f' % (i[4] / i[1] * 100) for i in data]
+                    y_list_1_3 = ['%.2f' % (i[3] / i[1] * 100) for i in data]
                     overlap = Overlap()
-                    line = Line()
+                    line = Line(spuid[1] + '-' + spuid[0])
                     line.add('转化率', x_list, y_list_1, yaxis_formatter='%', is_smooth=True)
                     line.add('收藏率', x_list, y_list_1_2, yaxis_formatter='%', is_smooth=True)
                     line.add('加购率', x_list, y_list_1_3, yaxis_formatter='%', is_smooth=True)
-                    line_2 = Line(spuidss['brand'] + '-' + spuidss['spuid'])
-                    y_list_2 = [i['uv'] for i in data]
-                    y_list_2_2 = [i['number_of_order_items'] for i in data]
+                    line_2 = Line(spuid[1] + '-' + spuid[0])
+                    y_list_2 = [i[1] for i in data]
+                    y_list_2_2 = [i[5] for i in data]
                     line_2.add('UV', x_list, y_list_2, is_smooth=True)
                     line_2.add('成交量', x_list, y_list_2_2, is_smooth=True)
                     overlap.add(line_2)
@@ -110,20 +96,23 @@ def index(request):
             err = '该批次没有对应的款式'
     # else:
     #     err = '批次号有误'
+    db.db.close()
     batch_form = Batch()
     return render(request, 'index.html',
-                  {'style_coding': style_coding_list, "line_list": over_list, 'err': err, 'batch_form': batch_form, 'batch': batchs})
+                  {'style_coding': style_coding_list, "line_list": over_list, 'err': err, 'batch_form': batch_form, 'batch': batch})
 
 
 # 动态验证批次号并加载对应的款式号
 def search_style(request):
-    batchs = request.GET.get('batch')
+    db = Database_operat()
+    batch = request.GET.get('batch')
     style_coding_list = []
     errs = ''
-    batch_exit = BatchComparison.objects.filter(batch=batchs).all()
-    if len(batch_exit) > 0:
-        style_coding_data = SpuidComparison.objects.filter(batch=batchs).values('style_coding').distinct().all()
-        style_coding_list = [i['style_coding'] for i in style_coding_data]
+    batch_sql = "SELECT batch FROM batch_comparison WHERE batch='%s';" % batch
+    batch = db.search_all(batch_sql)
+    if len(batch) > 0:
+        style_coding_sql = "SELECT DISTINCT style_coding FROM spuid_comparison WHERE batch='%s'; " % batch[0]
+        style_coding_list = db.search_all(style_coding_sql)
         if len(style_coding_list) < 1:
             errs = '该批次号没有款式'
     else:
@@ -131,6 +120,7 @@ def search_style(request):
     msg = {}
     msg['style_coding_list'] = style_coding_list
     msg['errs'] = errs
+    db.db.close()
     msg = json.dumps(msg)
     return HttpResponse(msg)
 

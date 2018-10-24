@@ -21,8 +21,10 @@ class Database_operat(object):
             self.cur.execute(sql)
             self.db.commit()
             data = self.cur.fetchall()
-            # data =[i[0] for i in data]
-            data =list(data)
+            print(data)
+            data =[i[0] for i in data]
+            print(data)
+            # data =list(data)
         except pymysql.err.ProgrammingError as e:
             print(e)
             print("查询失败")
