@@ -74,22 +74,25 @@ def index(request):
             shops_data = SpuidComparison.objects.filter(batch=batchs, style_coding=style).all()
             # shops_list = [i.brand for i in shops_data]
             shops_list = []
-            for i in shops_data :
-                tmp ={}
+            for i in shops_data:
+                tmp = {}
                 tmp['brand'] = i.brand
                 tmp['spuid'] = i.spuid
                 shops_list.append(tmp)
-            shops= request.POST.get('shopname')
+
+            shops = request.POST.get('shopname')
             # 判断该款式是否存在spuid号
             if len(spuid_list) > 0:
                 # 查询data并生成图表
                 over_list = []
                 if shops == '全部':
                     for shop in shops_list:
-                        data = StoreDailyData.objects.filter(spuid=shop['spuid'],brand=shop['brand']).values('uv', 'conversion_rate_of_order_payment',
-                                                                                            'conversion_rate_of_payment',
-                                                                                            'number_of_additional_purchases', 'collection_number',
-                                                                                            'number_of_order_items', 'date').all()
+                        data = StoreDailyData.objects.filter(spuid=shop['spuid'], brand=shop['brand']).values('uv',
+                                                                                                              'conversion_rate_of_order_payment',
+                                                                                                              'conversion_rate_of_payment',
+                                                                                                              'number_of_additional_purchases',
+                                                                                                              'collection_number',
+                                                                                                              'number_of_order_items', 'date').all()
                         x_list = [i['date'] for i in data]
                         y_list_1 = ['%.2f' % (i['conversion_rate_of_payment'] * 100) for i in data]
                         y_list_1_2 = []
@@ -121,14 +124,14 @@ def index(request):
                         ds = overlap.render_embed()
                         over_list.append(ds)
                 else:
-                    spuid_all = SpuidComparison.objects.filter(batch=batchs,style_coding=style,brand=shops).all()
+                    spuid_all = SpuidComparison.objects.filter(batch=batchs, style_coding=style, brand=shops).all()
                     spuid_list = [i.spuid for i in spuid_all]
                     for spuid_ in spuid_list:
-                        data = StoreDailyData.objects.filter(spuid=spuid_,).values('uv', 'conversion_rate_of_order_payment',
-                                                                                                              'conversion_rate_of_payment',
-                                                                                                              'number_of_additional_purchases',
-                                                                                                              'collection_number',
-                                                                                                              'number_of_order_items', 'date').all()
+                        data = StoreDailyData.objects.filter(spuid=spuid_, ).values('uv', 'conversion_rate_of_order_payment',
+                                                                                    'conversion_rate_of_payment',
+                                                                                    'number_of_additional_purchases',
+                                                                                    'collection_number',
+                                                                                    'number_of_order_items', 'date').all()
                         x_list = [i['date'] for i in data]
                         y_list_1 = ['%.2f' % (i['conversion_rate_of_payment'] * 100) for i in data]
                         y_list_1_2 = []
@@ -159,6 +162,7 @@ def index(request):
                         overlap.add(line, is_add_yaxis=True, yaxis_index=1)
                         ds = overlap.render_embed()
                         over_list.append(ds)
+                shops_list.append({'brand': '全部'})
             else:
                 err = '该款式没有对应的spuid'
         else:
@@ -166,9 +170,10 @@ def index(request):
     # else:
     #     err = '批次号有误'
     batch_form = Batch()
+
     return render(request, 'index.html',
                   {'style_coding': style_coding_list, "line_list": over_list, 'err': err, 'batch_form': batch_form, 'batch': batchs, 'style': style,
-                   'style_coding_list': style_coding_list, 'shops_list': shops_list,'shops':shops})
+                   'style_coding_list': style_coding_list, 'shops_list': shops_list, 'shops': shops})
 
 
 # 动态验证批次号并加载对应的款式号
@@ -184,66 +189,22 @@ def search_style(request):
             errs = '该批次号没有款式'
     else:
         errs = '批次号有误，请仔细核对'
+    batch_data = BatchComparison.objects.filter(batch=batchs).all()
+    for i in batch_data:
+        shooting_dates = i.shooting_date
+        types = i.type
+        models = i.model
+        locations = i.location
+        stylists = i.stylist
+        remarks = i.remark
     msg = {}
     msg['style_coding_list'] = style_coding_list
     msg['errs'] = errs
+    msg['shooting_dates'] = str(shooting_dates)
+    msg['types'] = types
+    msg['models'] = models
+    msg['locations'] = locations
+    msg['stylists'] = stylists
+    msg['remarks'] = remarks
     msg = json.dumps(msg)
     return HttpResponse(msg)
-
-
-# 动态加载生成图表
-def creat_chart(request):
-    db = Database_operat()
-    over_list = []
-    style_coding_list = []
-    err = ''
-    batch = ''
-    if request.method == 'POST':
-        batch = request.POST.get('batch')
-    # 判断款式号是否有误
-    if len(batch) > 0:
-        # 查询款式
-        style_coding_sql = "SELECT DISTINCT style_coding FROM spuid_comparison WHERE batch='%s'; " % batch
-        style_coding_list = db.search_all(style_coding_sql)
-        # 判断是否存在对应款式
-        if len(style_coding_list) > 0:
-            # 该款式的所有查询spuid的
-            if request.method == 'POST':
-                style = request.POST.get('style_coding')
-                spuid_sql = "SELECT spuid,brand FROM spuid_comparison WHERE style_coding='%s';" % style
-            else:
-                spuid_sql = "SELECT spuid,brand FROM spuid_comparison WHERE style_coding='%s';" % style_coding_list[0]
-            spuid_list = db.search_all(spuid_sql)
-            # 判断该款式是否存在spuid号
-            if len(spuid_list) > 0:
-                # 查询data并生成图表
-                over_list = []
-                for spuid in spuid_list:
-                    data_sql = "SELECT date,UV,conversion_rate_of_payment,number_of_additional_purchases,collection_number,number_of_order_items FROM store_daily_data WHERE spuid='%s';" % \
-                               spuid[0]
-                    data = db.search_all(data_sql)
-                    x_list = [i[0] for i in data]
-                    y_list_1 = ['%.2f' % (i[2] * 100) for i in data]
-                    y_list_1_2 = ['%.2f' % (i[4] / i[1] * 100) for i in data]
-                    y_list_1_3 = ['%.2f' % (i[3] / i[1] * 100) for i in data]
-                    overlap = Overlap()
-                    line = Line(spuid[1])
-                    line.add('转化率', x_list, y_list_1, yaxis_formatter='%', is_smooth=True)
-                    line.add('收藏率', x_list, y_list_1_2, yaxis_formatter='%', is_smooth=True)
-                    line.add('加购率', x_list, y_list_1_3, yaxis_formatter='%', is_smooth=True)
-                    line_2 = Line(spuid[1])
-                    y_list_2 = [i[1] for i in data]
-                    y_list_2_2 = [i[5] for i in data]
-                    line_2.add('UV', x_list, y_list_2, is_smooth=True)
-                    line_2.add('成交量', x_list, y_list_2_2, is_smooth=True)
-                    overlap.add(line_2)
-                    overlap.add(line, is_add_yaxis=True, yaxis_index=1)
-                    ds = overlap.render_embed()
-                    over_list.append(ds)
-            else:
-                err = '该款式没有对应的spuid'
-        else:
-            err = '该批次没有对应的款式'
-    # else:
-    #     err = '批次号有误'
-    db.db.close()

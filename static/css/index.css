@@ -1,0 +1,17 @@
+form{
+    margin-top: 15px;
+}
+.echarts_img{
+    margin-top: 15px;
+    margin-right: 60px;
+    float: left;
+    width: 50%;
+    height: 400px;
+    overflow-y: auto;
+}
+.batch_data{
+    margin-top: 15px;
+    margin-left: 60px;
+    float: left;
+    width: 40%;
+}

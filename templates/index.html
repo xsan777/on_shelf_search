@@ -2,11 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>款式趋势</title>
     <link rel="stylesheet" href="/static/css/bootstrap.min.css">
     <script src="/static/js/jquery-3.3.1.min.js"></script>
     <script src="/static/js/echarts.min.js"></script>
     <script src="/static/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="/static/css/index.css">
     {#<script src="/static/js/index.js"></script>#}
 
 </head>
@@ -40,10 +41,21 @@
     {% csrf_token %}
     <button type="submit" class="btn btn-default" id="search">查询</button>
 </form>
+<div class="batch_data">
+    <h4>拍摄批次号：<span id="batch"></span></h4>
+    <h4>拍摄时间：<span id="shooting_date"></span></h4>
+    <h4>拍摄类型：<span id="types"></span></h4>
+    <h4>拍摄模特：<span id="models"></span></h4>
+    <h4>拍摄地点：<span id="locations"></span></h4>
+    <h4>搭配师：<span id="stylist"></span></h4>
+    <h4>备注：<span id="remark"></span></h4>
+</div>
+<div class="echarts_img">
+    {% for line in line_list %}
+        {{ line|safe }}
+    {% endfor %}
+</div>
 
-{% for line in line_list %}
-    {{ line|safe }}
-{% endfor %}
 <!-- 验证报错，显示所查询的批次号-->
 <script>
     if ('{{ err }}' != '') {
@@ -83,7 +95,6 @@
             data: {'batch': kj},
             async: true,
             success: function (arg) {
-                console.log(arg)
                 if (arg['errs'] == '') {
                     $('span#batch_err').empty();
                     $('#style_coding').children().remove();
@@ -98,8 +109,34 @@
                     $('span#batch_err').empty();
                     $('span#batch_err').append(arg['errs']);
                     $('#style_coding').children().remove();
+                    $('#shopname').children().remove();
                     $('#search').attr('type', 'button');
                 }
+                $('span#batch').empty();
+                $('span#batch').append(kj);
+                $('span#shooting_date').empty();
+                $('span#shooting_date').append(arg['shooting_dates']);
+                $('span#types').empty();
+                $('span#types').append(arg['types']);
+                $('span#models').empty();
+                $('span#models').append(arg['models']);
+                $('span#locations').empty();
+                $('span#locations').append(arg['locations']);
+                $('span#stylist').empty();
+                $('span#stylist').append(arg['stylists']);
+                $('span#remark').empty();
+                $('span#remark').append(arg['remarks']);
+            },
+            error: function () {
+                $('span#batch_err').empty();
+                $('span#batch_err').append('批次号有误，请仔细核对');
+                $('span#batch').empty();
+                $('span#shooting_date').empty();
+                $('span#types').empty();
+                $('span#models').empty();
+                $('span#locations').empty();
+                $('span#stylist').empty();
+                $('span#remark').empty();
             }
         })
     }
@@ -150,8 +187,8 @@
     $('#shopname').find('option').each(
         function () {
             var shop = '{{ shops }}'
-            if ($(this).val() == shop){
-                $(this).attr("selected",true)
+            if ($(this).val() == shop) {
+                $(this).attr("selected", true)
             }
         }
     )
