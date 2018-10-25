@@ -21,14 +21,19 @@
     <div class="form-group">
         <label for="exampleInputPassword3">款式</label>
         <select name="style_coding" id="style_coding" class="form-control" onchange="change_shop()">
-            {% for style in style_coding %}
-{#                <option value="{{ style.0 }}">{{ style.0 }}</option>#}
+            {#            <option value="{{ style }}">{{ style }}</option>#}
+            {% for styles in style_coding_list %}
+                <option value="{{ styles }}">{{ styles }}</option>
             {% endfor %}
         </select>
     </div>
     <div class="form-group">
         <label for="shops">店铺</label>
         <select name="shopname" id="shopname" class="form-control">
+            {% for shop in shops_list %}
+                <option value="{{ shop.brand }}">{{ shop.brand }}</option>
+            {% endfor %}
+
         </select>
         <span id="shop_err"></span>
     </div>
@@ -112,7 +117,6 @@
             data: {'batch': batch, 'style': style},
             async: true,
             success: function (arg) {
-                console.log(arg);
                 if (arg['errs'] == '') {
                     $('span#shop_err').empty();
                     $('#shopname').children().remove();
@@ -126,13 +130,31 @@
                     $('span#shop_err').empty();
                     $('span#shop_err').append(arg['errs']);
                     $('#shopname').children().remove();
-                    {#$('#search').attr('type', 'button');#}
                 }
             }
         })
     }
 </script>
-
-
+{# 默认选中款式 #}
+<script>
+    $('#style_coding').find('option').each(
+        function () {
+            var sty = '{{ style }}';
+            if ($(this).val() == sty) {
+                $(this).attr("selected", true);
+            }
+        })
+</script>
+{# 默认选中店铺 #}
+<script>
+    $('#shopname').find('option').each(
+        function () {
+            var shop = '{{ shops }}'
+            if ($(this).val() == shop){
+                $(this).attr("selected",true)
+            }
+        }
+    )
+</script>
 </body>
 </html>
