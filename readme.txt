@@ -1,3 +1,7 @@
+V 0.0.4 实现当输入批次号后，动态加载出该批次信息；
+commit bd858e3e4ea06d241e0ea0ab6eefbf7f07bf9c46 
+
+
 V 0.0.3 实现查询粒度精确到店铺
 commit 97cfba928f341e6fcdba88f5a28175f93000a044
 

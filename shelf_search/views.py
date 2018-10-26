@@ -52,6 +52,8 @@ def index(request):
     # 判断款式号是否有误
     if len(batchs) > 0:
         # 查询款式
+        batch_data = BatchComparison.objects.filter(batch=batchs).all()
+
         style_coding_data = SpuidComparison.objects.filter(batch=batchs).values('style_coding').all()
         # 判断是否存在对应款式
         if len(style_coding_data) > 0:
@@ -72,14 +74,12 @@ def index(request):
             style_coding_list = [i['style_coding'] for i in style_coding_data_2]
             # 店铺列表
             shops_data = SpuidComparison.objects.filter(batch=batchs, style_coding=style).all()
-            # shops_list = [i.brand for i in shops_data]
             shops_list = []
             for i in shops_data:
                 tmp = {}
                 tmp['brand'] = i.brand
                 tmp['spuid'] = i.spuid
                 shops_list.append(tmp)
-
             shops = request.POST.get('shopname')
             # 判断该款式是否存在spuid号
             if len(spuid_list) > 0:
@@ -87,28 +87,27 @@ def index(request):
                 over_list = []
                 if shops == '全部':
                     for shop in shops_list:
-                        data = StoreDailyData.objects.filter(spuid=shop['spuid'], brand=shop['brand']).values('uv',
+                        data = StoreDailyData.objects.filter(spuid=shop['spuid'], brand=shop['brand']).values('uv', 'title', 'status', 'spuid',
                                                                                                               'conversion_rate_of_order_payment',
                                                                                                               'conversion_rate_of_payment',
                                                                                                               'number_of_additional_purchases',
                                                                                                               'collection_number',
                                                                                                               'number_of_order_items', 'date').all()
-                        x_list = [i['date'] for i in data]
-                        y_list_1 = ['%.2f' % (i['conversion_rate_of_payment'] * 100) for i in data]
+                        x_list = []
+                        y_list_1 = []
                         y_list_1_2 = []
+                        y_list_1_3 = []
                         for i in data:
+                            x_list.append(i['date'])
+                            y_list_1.append('%.2f' % (i['conversion_rate_of_payment'] * 100))
                             if i['uv'] == 0:
                                 tmp = '0.00'
                             else:
                                 tmp = '%.2f' % (i['collection_number'] / i['uv'] * 100)
+                                tmp_2 = '%.2f' % (i['number_of_additional_purchases'] / i['uv'] * 100)
                             y_list_1_2.append(tmp)
-                        y_list_1_3 = []
-                        for i in data:
-                            if i['uv'] == 0:
-                                tmp = '0.00'
-                            else:
-                                tmp = '%.2f' % (i['number_of_additional_purchases'] / i['uv'] * 100)
-                            y_list_1_3.append(tmp)
+                            y_list_1_3.append(tmp_2)
+
                         overlap = Overlap()
                         line = Line()
                         line.add('转化率', x_list, y_list_1, yaxis_formatter='%', is_smooth=True)
@@ -132,22 +131,20 @@ def index(request):
                                                                                     'number_of_additional_purchases',
                                                                                     'collection_number',
                                                                                     'number_of_order_items', 'date').all()
-                        x_list = [i['date'] for i in data]
-                        y_list_1 = ['%.2f' % (i['conversion_rate_of_payment'] * 100) for i in data]
+                        x_list = []
+                        y_list_1 = []
                         y_list_1_2 = []
+                        y_list_1_3 = []
                         for i in data:
+                            x_list.append(i['date'])
+                            y_list_1.append('%.2f' % (i['conversion_rate_of_payment'] * 100))
                             if i['uv'] == 0:
                                 tmp = '0.00'
                             else:
                                 tmp = '%.2f' % (i['collection_number'] / i['uv'] * 100)
+                                tmp_2 = '%.2f' % (i['number_of_additional_purchases'] / i['uv'] * 100)
                             y_list_1_2.append(tmp)
-                        y_list_1_3 = []
-                        for i in data:
-                            if i['uv'] == 0:
-                                tmp = '0.00'
-                            else:
-                                tmp = '%.2f' % (i['number_of_additional_purchases'] / i['uv'] * 100)
-                            y_list_1_3.append(tmp)
+                            y_list_1_3.append(tmp_2)
                         overlap = Overlap()
                         line = Line()
                         line.add('转化率', x_list, y_list_1, yaxis_formatter='%', is_smooth=True)
@@ -167,8 +164,8 @@ def index(request):
                 err = '该款式没有对应的spuid'
         else:
             err = '该批次没有对应的款式'
-    # else:
-    #     err = '批次号有误'
+    else:
+        err = '批次号有误'
     batch_form = Batch()
 
     return render(request, 'index.html',
