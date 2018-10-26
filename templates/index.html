@@ -42,13 +42,13 @@
     <button type="submit" class="btn btn-default" id="search">查询</button>
 </form>
 <div class="batch_data">
-    <h4>拍摄批次号：<span id="batch"></span></h4>
-    <h4>拍摄时间：<span id="shooting_date"></span></h4>
-    <h4>拍摄类型：<span id="types"></span></h4>
-    <h4>拍摄模特：<span id="models"></span></h4>
-    <h4>拍摄地点：<span id="locations"></span></h4>
-    <h4>搭配师：<span id="stylist"></span></h4>
-    <h4>备注：<span id="remark"></span></h4>
+    <h4>拍摄批次号：<span id="batch">{{ batchs_msg_dic.batch }}</span></h4>
+    <h4>拍摄时间：<span id="shooting_date">{{ batchs_msg_dic.shooting_date }}</span></h4>
+    <h4>拍摄类型：<span id="types">{{ batchs_msg_dic.type }}</span></h4>
+    <h4>拍摄模特：<span id="models">{{ batchs_msg_dic.model }}</span></h4>
+    <h4>拍摄地点：<span id="locations">{{ batchs_msg_dic.location }}</span></h4>
+    <h4>搭配师：<span id="stylist">{{ batchs_msg_dic.stylist }}</span></h4>
+    <h4>备注：<span id="remark">{{ batchs_msg_dic.remark }}</span></h4>
 </div>
 <div class="echarts_img">
     {% for line in line_list %}

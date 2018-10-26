@@ -47,8 +47,19 @@ def index(request):
     style = ''
     shops_list = ''
     shops = ''
+    batchs_msg_dic = ''
     if request.method == 'POST':
         batchs = request.POST.get('batch')
+        batchs_msg = BatchComparison.objects.filter(batch=batchs).all()
+        batchs_msg_dic = {}
+        for batch in batchs_msg:
+            batchs_msg_dic['model'] = batch.model
+            batchs_msg_dic['batch'] = batch.batch
+            batchs_msg_dic['remark'] = batch.remark
+            batchs_msg_dic['type'] = batch.type
+            batchs_msg_dic['stylist'] = batch.stylist
+            batchs_msg_dic['shooting_date'] = str(batch.shooting_date)
+            batchs_msg_dic['location'] = batch.location
     # 判断款式号是否有误
     if len(batchs) > 0:
         # 查询款式
@@ -164,13 +175,13 @@ def index(request):
                 err = '该款式没有对应的spuid'
         else:
             err = '该批次没有对应的款式'
-    else:
-        err = '批次号有误'
+    # else:
+    #     err = '批次号有误'
     batch_form = Batch()
 
     return render(request, 'index.html',
                   {'style_coding': style_coding_list, "line_list": over_list, 'err': err, 'batch_form': batch_form, 'batch': batchs, 'style': style,
-                   'style_coding_list': style_coding_list, 'shops_list': shops_list, 'shops': shops})
+                   'style_coding_list': style_coding_list, 'shops_list': shops_list, 'shops': shops,'batchs_msg_dic':batchs_msg_dic})
 
 
 # 动态验证批次号并加载对应的款式号
